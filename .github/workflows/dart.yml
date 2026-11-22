@@ -1,0 +1,54 @@
+
+name: Build Saxzy Mod VIP v8.2 IPA
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  build-ipa:
+    runs-on: macos-15
+
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
+
+      - name: Show Xcode Version
+        run: xcodebuild -version
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode Project
+        run: xcodegen generate
+
+      - name: Build Unsigned App
+        run: |
+          xcodebuild \
+            -project SaxzyModVIP.xcodeproj \
+            -scheme SaxzyModVIP \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build
+
+      - name: Package IPA
+        run: |
+          mkdir -p build/Payload
+          cp -R build/DerivedData/Build/Products/Release-iphoneos/SaxzyModVIP.app build/Payload/
+          cd build
+          zip -r -y SaxzyModVIP-v8.2-unsigned.ipa Payload
+
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SaxzyModVIP-v8.2-unsigned-ipa
+          path: build/SaxzyModVIP-v8.2-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 7
